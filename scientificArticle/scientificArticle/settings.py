@@ -37,6 +37,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'publi.apps.PubliConfig',
 ]
 
 MIDDLEWARE = [
@@ -80,6 +81,17 @@ DATABASES = {
     }
 }
 
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.mysql',
+#         'DB_NAME': 'testdatabase',
+#         'DB_USER': 'dzu8fnll0mjgoif0i5ht',
+#         'DB_PASSWORD': 'pscale_pw_6bB9E94xvOCl7oAp8VhpKhfCEwuvSfBLBvMtnXCvT4C',
+#         'DB_HOST': 'aws.connect.psdb.cloud',
+#         'DB_PORT': '3306',
+#         'MYSQL_ATTR_SSL_CA': '/etc/ssl/certs/ca-certificates.crt',
+#     }
+# }
 
 # Password validation
 # https://docs.djangoproject.com/en/4.2/ref/settings/#auth-password-validators
