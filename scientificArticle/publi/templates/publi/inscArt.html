@@ -1,0 +1,15 @@
+<form action="{% url 'ajout' %}" method="post", enctype="multipart/form-data">
+    {% csrf_token %}
+    <!-- <label for="title">title:
+        <input id="title" type="text" name="title" maxlength="30"></label>
+    <label for="description">description:
+        <input id="description" type="text" name="description"></label>
+    <label for="content">contenu(fichier docx ou pdf):
+        <input id="content" type="file" name="content"></label>
+    <label for="image">image:
+        <input id="image" type="file" name="image"></label>
+    <label for="video">video:
+        <input id="video" type="file" name="video"></label> -->
+    {{form}}
+    <input type="submit" value="valid">
+</form>
