@@ -1,6 +1,7 @@
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin, UserManager
 from django.db import models
 from django.utils import timezone
+from django.contrib.auth.hashers import make_password
 
 class CustomUserManager(UserManager):
     def _create_user(self, email, password, **extra_fields):
@@ -9,7 +10,7 @@ class CustomUserManager(UserManager):
         
         email = self.normalize_email(email)
         user = self.model(email=email, **extra_fields)
-        user.set_password(password)
+        user.password = make_password(password)
         user.save(using=self._db)
 
         return user
