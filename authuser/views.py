@@ -2,7 +2,7 @@ from django.shortcuts import render
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from django.http import HttpResponse
-from .models import User, Article
+from .models import User, Article, Comment
 from .serializers import UserSerializer, ArticleSerializer
 from django.contrib.auth.hashers import check_password, make_password
 
@@ -119,11 +119,86 @@ def get_published_article(request):
 
 @api_view(['GET'])
 def view_article(request, article_id):
-    article = Article.objects.filter(pk=article_id).only()
-    for art in article:
-        request.session['id_user_art'] = art.id_user.id
+    error = None
+    try:
+        article = Article.objects.filter(pk=article_id).only()
+        for art in article:
+            request.session['id_user_art'] = art.id_user.id # id of the user who owns the item
 
-        serializer = ArticleSerializer(art)
+            serializer = ArticleSerializer(art)
 
-        return Response(serializer.data)
+            return Response(serializer.data)
+    except Exception as e:
+        error = e
+
+    return Response({'success': False, 'error': error})
     
+"""delete article"""
+
+@api_view(['GET'])
+def delete_article(request, article_id):
+
+    error = None
+    success = False
+
+    if request.session['id_user_art'] == request.session['id_user']:
+        try:
+            article = Article.objects.filter(pk=article_id).only()
+            article.delete()
+            success = True
+        except Exception as e:
+            error = e
+            success = False
+    
+    return Response({'success': success, 'error': error})
+
+"""update article"""
+
+@api_view(['POST'])
+def update_article(request, article_id):
+    data = request.data
+    title = data['title']
+    description = data['description']
+    url_image = data['url_image']
+
+    error = None
+    success = False
+
+    if request.session['id_user_art'] == request.session['id_user']:
+        try:
+            article = Article.objects.filter(pk=article_id).only()
+            for art in article:
+                art.title = title
+                art.description = description
+                art.url_image = url_image
+                # update at
+                art.save()
+                success = True
+        except Exception as e:
+            error = e
+
+    return Response({'success': success, 'error': error})
+
+"""add comment"""
+
+@api_view(['POST'])
+def add_comment(request, article_id):
+    data = request.data
+    body = data['body']
+    author = request.session['email']
+    id_article = article_id
+    id_user = request.session['id_user']
+    error = None
+    success = False
+
+    try:
+        comment = Comment(body, author, id_article, id_user)
+        comment.save()
+        success = True
+    except Exception as e:
+        error = e
+        success = False
+    
+    return Response({'success': success, 'error': error})
+
+"""view all article comments"""
