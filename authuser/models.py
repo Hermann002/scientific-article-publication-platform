@@ -51,3 +51,46 @@ class User(AbstractBaseUser, PermissionsMixin):
     
     def get_short_name(self):
         return self.name or self.email.split('@')[0]
+    
+# class Admin(User):
+#     is_staff = models.BooleanField(default=True)
+
+    
+class Article(models.Model):
+    title = models.CharField(max_length=200, unique=True)
+    description = models.TextField(default='')
+    author = models.EmailField(blank=True, default='')
+    url_image = models.CharField(default='', max_length=5000)
+    is_published = models.BooleanField(default=False)
+    created_at = models.DateTimeField(default=timezone.now)
+    id_user = models.ForeignKey(to=User, on_delete=models.CASCADE, default='')
+
+    #definir un constructeur pour la classe article
+    def __artcode__(self, title, description, url_image, author, id_user):
+        self.title = title
+        self.description = description
+        self.url_image = url_image
+        self.author = author
+        self.id_user = id_user
+    
+    def get_is_published(self):
+        return self.is_published
+    
+    def set_is_published(self, status):
+        self.is_published = status  
+
+    def __str__(self):
+        return self.title
+
+class Comment(models.Model):
+    body = models.TextField(default='', blank=False)
+    author = models.EmailField(blank=True, default='')
+    id_article = models.ForeignKey(to=Article, on_delete=models.CASCADE, default='')
+    id_user = models.ForeignKey(to=User, on_delete=models.CASCADE, default='')
+    created_at = models.DateTimeField(default=timezone.now)
+
+    def __comcode__(self, body, author, id_article, id_user):
+        self.body = body
+        self.author = author
+        self.id_article = id_article
+        self.id_user = id_user
