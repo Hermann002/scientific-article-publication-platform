@@ -3,7 +3,7 @@ from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from django.http import HttpResponse
 from .models import User, Article, Comment
-from .serializers import UserSerializer, ArticleSerializer
+from .serializers import UserSerializer, ArticleSerializer, CommentSerializer
 from django.contrib.auth.hashers import check_password, make_password
 
 # Create your views here.
@@ -141,7 +141,7 @@ def delete_article(request, article_id):
     error = None
     success = False
 
-    if request.session['id_user_art'] == request.session['id_user']:
+    if request.session['id_user_art'] == request.session['id_user']  or request.session['is_admin']:
         try:
             article = Article.objects.filter(pk=article_id).only()
             article.delete()
@@ -202,3 +202,46 @@ def add_comment(request, article_id):
     return Response({'success': success, 'error': error})
 
 """view all article comments"""
+
+@api_view(['GET'])
+def view_all_comments(request, article_id):
+    try:
+        comments = Comment.objects.filter(id_article=article_id).all()
+        serializer = CommentSerializer(comments, many=True)
+    except Exception as e:
+        error = e
+        return Response({'error': error})
+
+    Response(serializer.data)
+
+"""update comment"""
+
+@api_view(['POST'])
+def update_comment(request, article_id):
+    data = request.data
+    body = data['body']
+    error = None
+    success = False
+    id_user = request.session['id_user']
+    users = User.objects.filter(pk = id_user).only()
+    
+    for use in users:
+        user = use
+    if article_id == request.session['id_user_art']:
+        try:
+            comment = Comment.objects.filter(id_article = article_id, id_user = user).only()
+        except Exception as e:
+            error = e
+
+            return Response({'success': success, 'error': error})
+    
+    for comm in comment:
+        comm.body = body
+        comm.save()
+        success = True
+
+    serializer = CommentSerializer(data=comm)
+    
+    return Response(serializer.data)
+
+"""delete comment """
