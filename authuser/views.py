@@ -11,7 +11,7 @@ from django.contrib.auth.hashers import check_password, make_password
 """view all users datas"""
 
 @api_view(['GET'])
-def getData(request):
+def getUsers(request):
     users = User.objects.all()
     serializer = UserSerializer(users, many=True)
 
@@ -26,7 +26,7 @@ def signup(request):
     data['password'] = make_password(password) # hash password
     serializer = UserSerializer(data=data)
     error = None
-    success = None
+    success = False
 
     if serializer.is_valid():
         try:
@@ -44,12 +44,11 @@ def signup(request):
 def login(request):
     data = request.data
     error = None
-    success = None
+    success = False
 
     users = User.objects.filter(email = data['email']).only() # fetch one user by email
     for user in users:
         password = data['password']
-        print('check password ...')
         if user is None:
             error = 'user is not registered'
             success = False
@@ -72,32 +71,45 @@ def login(request):
 
 @api_view(['GET'])
 def logout(request):
+    success = False
+    print(request.session['email'])
     try:
-        del request.session # clear session
+        del request.session['email'] # clear session
+        del request.session['is_admin']
+        del request.session['id_user']
+        del request.session['id_user_art']
+        success = True
     except KeyError:
         pass
-    return Response({'success': True, 'error': None})
+
+    return Response({'success': success, 'error': None})
 
 """add new article"""
 
 @api_view(['POST'])
 def add(request):
     data = request.data
-    title = data['title']
-    description = data['description']
-    url_image = data['url_image']
-    email = request.session['email']
-    id_user = request.session['id_user']
     error = None
     success = False
-
+    # title = data['title']
+    # description = data['description']
+    # url_image = data['url_image']
     try:
-        article = Article(title, description, url_image, email, id_user)
-        article.save()
-        success = True
+        data['author'] = request.session['email']
+        data['id_user'] = request.session['id_user']
     except Exception as e:
-        error = e
-        success = False
+        error = 'login'
+        return Response({'success': success, 'error': error})
+
+    serializer = ArticleSerializer(data=data)
+
+    if serializer.is_valid():
+        try:
+            serializer.save()
+            success = True
+        except Exception as  e:
+            error = e
+            success = False
 
     return Response({'success': success, 'error': error})
 
@@ -121,13 +133,11 @@ def get_published_article(request):
 def view_article(request, article_id):
     error = None
     try:
-        article = Article.objects.filter(pk=article_id).only()
-        for art in article:
-            request.session['id_user_art'] = art.id_user.id # id of the user who owns the item
+        article = Article.objects.get(pk=article_id)
+        request.session['id_user_art'] = article.id_user.id # id of the user who owns the item
 
-            serializer = ArticleSerializer(art)
-
-            return Response(serializer.data)
+        serializer = ArticleSerializer(article)
+        return Response(serializer.data)
     except Exception as e:
         error = e
 
@@ -143,7 +153,7 @@ def delete_article(request, article_id):
 
     if request.session['id_user_art'] == request.session['id_user']  or request.session['is_admin']:
         try:
-            article = Article.objects.filter(pk=article_id).only()
+            article = Article.objects.get(pk=article_id)
             article.delete()
             success = True
         except Exception as e:
@@ -157,25 +167,33 @@ def delete_article(request, article_id):
 @api_view(['POST'])
 def update_article(request, article_id):
     data = request.data
-    title = data['title']
-    description = data['description']
-    url_image = data['url_image']
-
+    # data['id'] = article_id
+    # data['author'] = request.session['email']
+    # data['id_user'] = request.session['id_user']
     error = None
     success = False
 
+    # serializer = ArticleSerializer(data=data)
+
+    # if serializer.is_valid():
+    #     try:
+    #         serializer.save()
+    #         success = True
+    #     except Exception as e:
+    #         error = "Modification echouée"
+    
     if request.session['id_user_art'] == request.session['id_user']:
         try:
-            article = Article.objects.filter(pk=article_id).only()
-            for art in article:
-                art.title = title
-                art.description = description
-                art.url_image = url_image
-                # update at
-                art.save()
-                success = True
+            article = Article.objects.get(pk=article_id)
+            article.title = data['title']
+            article.description = data['description']
+            article.url_image = data['url_image']
+            # update at
+            article.save()
+            success = True
         except Exception as e:
-            error = e
+            error = "failed"
+            print(e)
 
     return Response({'success': success, 'error': error})
 
@@ -183,21 +201,23 @@ def update_article(request, article_id):
 
 @api_view(['POST'])
 def add_comment(request, article_id):
+
     data = request.data
-    body = data['body']
-    author = request.session['email']
-    id_article = article_id
-    id_user = request.session['id_user']
     error = None
     success = False
-
+    # body = data['body']
     try:
-        comment = Comment(body, author, id_article, id_user)
-        comment.save()
+        data['author'] = request.session['email']
+        data['id_user'] = request.session['id_user']
+        data['id_article'] = article_id
+    except:
+        error = 'none article'
+    
+    serializer = CommentSerializer(data=data)
+
+    if serializer.is_valid():
+        serializer.save()
         success = True
-    except Exception as e:
-        error = e
-        success = False
     
     return Response({'success': success, 'error': error})
 
@@ -205,43 +225,59 @@ def add_comment(request, article_id):
 
 @api_view(['GET'])
 def view_all_comments(request, article_id):
+    error = None
     try:
         comments = Comment.objects.filter(id_article=article_id).all()
         serializer = CommentSerializer(comments, many=True)
     except Exception as e:
-        error = e
+        error = "error"
         return Response({'error': error})
 
-    Response(serializer.data)
+    return Response(serializer.data)
 
 """update comment"""
 
 @api_view(['POST'])
-def update_comment(request, article_id):
+def update_comment(request, article_id, comment_id):
     data = request.data
     body = data['body']
     error = None
     success = False
-    id_user = request.session['id_user']
-    users = User.objects.filter(pk = id_user).only()
     
-    for use in users:
-        user = use
-    if article_id == request.session['id_user_art']:
-        try:
-            comment = Comment.objects.filter(id_article = article_id, id_user = user).only()
-        except Exception as e:
-            error = e
-
-            return Response({'success': success, 'error': error})
+    try:
+        comment = Comment.objects.get(pk= comment_id ,id_article = article_id)
+    except Exception as e:
+        error = "You cannot edit this comment !"
+        print(e)
+        return Response({'success': success, 'error': error})
     
-    for comm in comment:
-        comm.body = body
-        comm.save()
+    if  article_id == request.session['id_user_art'] and comment.id_user.id == request['id_user']:
+        comment.body = body
+        comment.save()
         success = True
-
-    serializer = CommentSerializer(data=comm)
+    else:
+        return Response({'success': success, 'error': error})
     
-    return Response(serializer.data)
+    return Response(comment)
 
 """delete comment """
+
+@api_view(['GET'])
+def delete_comment(request, article_id, comment_id):
+    error = None
+    success = False
+    
+    try:
+        comment = Comment.objects.get(pk= comment_id ,id_article = article_id)
+    except Exception as e:
+        error = "You cannot delete this comment !"
+        print(e)
+        return Response({'success': success, 'error': error})
+    
+    if  article_id == request.session['id_user_art'] and comment.id_user.id == request['id_user']:
+        comment.delete()
+        success = True
+    else:
+        return Response({'success': success, 'error': error})
+    
+    return Response(comment)

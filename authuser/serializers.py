@@ -10,7 +10,7 @@ class UserSerializer(serializers.ModelSerializer):
 class ArticleSerializer(serializers.ModelSerializer):
     class Meta:
         model = Article
-        fields = ['id','title', 'description', 'author', 'url_image']
+        fields = ['id','title', 'description', 'author', 'url_image', 'id_user']
 
 class CommentSerializer(serializers.ModelSerializer):
     class Meta:
